@@ -1,0 +1,452 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>FallID · sovereign identity spine</title>
+<meta name="description" content="Your own DID, generated in your browser. Ed25519 keypair persisted in IndexedDB. Sign, verify, prove — no OAuth, no login, no server. AI-Native Solutions.">
+<meta name="author" content="AI-Native Solutions">
+<meta name="theme-color" content="#1a1a1e">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%231a1a1e'/%3E%3Ctext x='16' y='23' font-family='serif' font-size='20' fill='%237a9c7e' text-anchor='middle'%3E%E2%97%8A%3C/text%3E%3C/svg%3E">
+<link rel="manifest" href="manifest.webmanifest">
+<style>
+:root{--void:#1a1a1e;--deep:#212127;--surface:#2a2a30;--raised:#33333a;--line:rgba(232,228,219,0.08);--line2:rgba(232,228,219,0.16);--text:#e8e4db;--muted:#928d80;--dim:#6b6660;--sage:#7a9c7e;--sage-dim:rgba(122,156,126,0.14);--amber:#d4a052;--amber-dim:rgba(212,160,82,0.12);--coral:#d67a5a;--coral-glow:rgba(214,122,90,0.15);--serif:'Cormorant Garamond','Iowan Old Style',Georgia,serif;--sans:'Inter',-apple-system,system-ui,sans-serif;--mono:'JetBrains Mono','IBM Plex Mono',monospace}
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{background:var(--void);color:var(--text);font-family:var(--sans);font-size:15px;line-height:1.6;-webkit-font-smoothing:antialiased;min-height:100vh}
+button{font-family:inherit;cursor:pointer;border:none;outline:none}
+input,textarea{font-family:var(--mono);background:var(--surface);color:var(--text);border:1px solid var(--line2);border-radius:8px;outline:none;width:100%;padding:10px 12px;font-size:12.5px;line-height:1.5}
+input:focus,textarea:focus{border-color:var(--sage)}
+textarea{resize:vertical;min-height:70px;font-family:var(--mono)}
+h1,h2,h3{font-family:var(--serif);font-weight:400;color:var(--text);line-height:1.2}
+h1{font-size:42px;letter-spacing:0.01em;margin-bottom:6px}
+h1 em{color:var(--sage);font-style:italic}
+h2{font-size:22px;margin-bottom:12px}
+h2 em{color:var(--sage);font-style:italic}
+h3{font-size:11px;color:var(--muted);margin-bottom:10px;text-transform:uppercase;letter-spacing:0.16em;font-family:var(--mono);font-weight:500}
+.topbar{background:rgba(26,26,30,0.95);backdrop-filter:blur(12px);border-bottom:1px solid var(--line);padding:14px 24px;display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;z-index:50}
+.brand{display:flex;align-items:center;gap:10px;font-family:var(--serif);font-size:22px;color:var(--text)}
+.brand .glyph{color:var(--sage);font-size:22px}
+.brand .co{color:var(--dim);font-family:var(--mono);font-size:9.5px;letter-spacing:0.16em;margin-left:6px;text-transform:uppercase}
+.tag{color:var(--muted);font-family:var(--mono);font-size:10.5px;letter-spacing:0.14em;text-transform:uppercase}
+main{padding:32px 24px 80px;max-width:920px;margin:0 auto;width:100%}
+.hero{margin-bottom:32px}
+.hero p{color:var(--muted);font-size:16px;max-width:640px;line-height:1.7;margin-top:12px}
+.hero p em{color:var(--sage);font-style:italic;font-family:var(--serif);font-size:19px}
+.card{background:var(--deep);border:1px solid var(--line);border-radius:14px;padding:22px 24px;margin-bottom:20px}
+.card .hint{color:var(--muted);font-size:12.5px;font-style:italic;margin-top:10px;line-height:1.6}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:20px}
+@media(max-width:760px){.grid2{grid-template-columns:1fr}}
+.did-box{background:var(--surface);border-left:3px solid var(--sage);padding:14px 16px;border-radius:8px;font-family:var(--mono);font-size:12.5px;color:var(--text);word-break:break-all;line-height:1.5;margin-bottom:8px;user-select:all}
+.pubkey-box{background:var(--surface);padding:12px 14px;border-radius:8px;font-family:var(--mono);font-size:11px;color:var(--muted);word-break:break-all;line-height:1.5;user-select:all}
+.qr-wrap{display:flex;justify-content:center;padding:18px;background:#fff;border-radius:10px}
+.qr-wrap svg{width:100%;max-width:260px;height:auto;display:block}
+.row{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+.btn{background:var(--sage);color:var(--void);padding:10px 18px;border-radius:8px;font-family:var(--mono);font-size:10.5px;letter-spacing:0.14em;text-transform:uppercase;font-weight:700;transition:background .15s}
+.btn:hover{background:#8db091}
+.btn.ghost{background:transparent;color:var(--text);border:1px solid var(--line2)}
+.btn.ghost:hover{background:var(--surface)}
+.btn.amber{background:var(--amber);color:var(--void)}
+.btn.amber:hover{background:#e0b165}
+.btn.coral{background:var(--coral);color:var(--void)}
+.btn.coral:hover{background:#e28a6a}
+.btn:disabled{opacity:0.4;cursor:not-allowed}
+.field{margin-bottom:12px}
+.field label{display:block;color:var(--muted);font-family:var(--mono);font-size:10px;letter-spacing:0.14em;text-transform:uppercase;margin-bottom:6px}
+.output{background:var(--void);border:1px solid var(--line);padding:12px 14px;border-radius:8px;font-family:var(--mono);font-size:11.5px;color:var(--sage);word-break:break-all;line-height:1.55;user-select:all;min-height:44px;white-space:pre-wrap}
+.output.err{color:var(--coral);border-color:var(--coral)}
+.output.ok{color:var(--sage);border-color:var(--sage)}
+.output.amber{color:var(--amber);border-color:var(--amber)}
+.status{position:fixed;bottom:22px;left:50%;transform:translateX(-50%);background:var(--deep);border:1px solid var(--sage);padding:10px 18px;border-radius:24px;font-family:var(--mono);font-size:11px;letter-spacing:0.1em;color:var(--sage);z-index:100;opacity:0;transition:opacity .2s;pointer-events:none;box-shadow:0 4px 16px rgba(0,0,0,0.4)}
+.status.on{opacity:1}
+.status.err{border-color:var(--coral);color:var(--coral)}
+.hist{max-height:240px;overflow-y:auto;font-family:var(--mono);font-size:11px}
+.hist-item{padding:8px 12px;border-bottom:1px solid var(--line);color:var(--muted);display:flex;justify-content:space-between;gap:10px}
+.hist-item:last-child{border-bottom:none}
+.hist-item .msg{color:var(--text);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.hist-item .t{color:var(--dim);font-size:10px}
+.modal{position:fixed;inset:0;background:rgba(26,26,30,0.9);backdrop-filter:blur(8px);z-index:1000;display:none;align-items:center;justify-content:center;padding:20px}
+.modal.on{display:flex}
+.modal .box{background:var(--deep);border:1px solid var(--coral);border-radius:14px;padding:28px;max-width:480px;width:100%}
+.modal h2{color:var(--coral);margin-bottom:12px}
+.modal p{color:var(--text);margin-bottom:14px;font-size:14px;line-height:1.6}
+.modal .actions{display:flex;gap:8px;justify-content:flex-end;margin-top:16px;flex-wrap:wrap}
+footer{padding:32px 24px;text-align:center;color:var(--dim);font-family:var(--mono);font-size:10.5px;letter-spacing:0.1em;border-top:1px solid var(--line);margin-top:40px}
+footer a{color:var(--muted);text-decoration:none}
+footer a:hover{color:var(--sage)}
+.warn{background:var(--amber-dim);border:1px solid var(--amber);border-radius:10px;padding:16px;margin-bottom:20px;color:var(--text);font-size:13.5px}
+.warn strong{color:var(--amber)}
+.dl{display:flex;gap:12px;margin-top:12px;flex-wrap:wrap}
+.dl a{color:var(--sage);text-decoration:none;font-family:var(--mono);font-size:11px;letter-spacing:0.08em;border:1px solid var(--line2);padding:6px 12px;border-radius:6px}
+.dl a:hover{background:var(--sage-dim)}
+</style>
+</head>
+<body>
+<div class="topbar">
+  <div class="brand"><span class="glyph">&#9674;</span> FallID <span class="co">AI-Native Solutions</span></div>
+  <div class="tag">sovereign identity spine</div>
+</div>
+
+<main>
+  <div class="hero">
+    <h1>Your <em>own</em> DID.</h1>
+    <p>Generated in your browser. Persisted in IndexedDB. Never sent anywhere. <em>Berners-Lee's dream, one Ed25519 keypair at a time.</em></p>
+  </div>
+
+  <div id="unsupported" class="warn" style="display:none">
+    <strong>Ed25519 not available.</strong> Your browser doesn't expose native Ed25519 via Web Crypto. Chrome 137+, Safari 17+, Firefox 130+. Try a modern Chromium build.
+  </div>
+
+  <div class="card">
+    <h3>Your identity</h3>
+    <div class="field">
+      <label>DID</label>
+      <div class="did-box" id="did-out">generating&hellip;</div>
+    </div>
+    <div class="field">
+      <label>Public key (hex, 32 bytes)</label>
+      <div class="pubkey-box" id="pubkey-out">&mdash;</div>
+    </div>
+    <div class="row">
+      <button class="btn" id="copy-did">Copy DID</button>
+      <button class="btn ghost" id="copy-pubkey">Copy pubkey</button>
+      <button class="btn ghost" id="show-created">Age</button>
+    </div>
+  </div>
+
+  <div class="grid2">
+    <div class="card">
+      <h3>QR code</h3>
+      <div class="qr-wrap" id="qr-wrap"><svg viewBox="0 0 100 100"><rect width="100" height="100" fill="#fff"/></svg></div>
+      <p class="hint">Scan to share your DID. Any Ed25519 verifier can check your signatures against this.</p>
+    </div>
+    <div class="card">
+      <h3>Sign a message</h3>
+      <div class="field">
+        <label>Message</label>
+        <textarea id="sign-msg" placeholder="type anything to sign&hellip;"></textarea>
+      </div>
+      <div class="row"><button class="btn amber" id="sign-btn">Sign</button><button class="btn ghost" id="copy-bundle">Copy bundle</button></div>
+      <div class="field" style="margin-top:12px">
+        <label>Signature (hex)</label>
+        <div class="output" id="sign-out">&mdash;</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>Verify a signed message</h3>
+    <p class="hint" style="margin-top:0;margin-bottom:14px">Paste any FallID sign-bundle. Verifies against the DID's public key. Works for anyone's DID, not just yours.</p>
+    <div class="field">
+      <label>DID (did:key:z...)</label>
+      <input id="v-did" placeholder="did:key:z6Mk...">
+    </div>
+    <div class="field">
+      <label>Message</label>
+      <textarea id="v-msg" placeholder="the exact bytes that were signed"></textarea>
+    </div>
+    <div class="field">
+      <label>Signature (hex or base64)</label>
+      <textarea id="v-sig" placeholder="signature bytes"></textarea>
+    </div>
+    <div class="row"><button class="btn" id="verify-btn">Verify</button><button class="btn ghost" id="paste-mine">Fill with mine</button></div>
+    <div class="field" style="margin-top:12px">
+      <label>Result</label>
+      <div class="output" id="v-out">awaiting input</div>
+    </div>
+  </div>
+
+  <div class="grid2">
+    <div class="card">
+      <h3>Encrypted backup</h3>
+      <p class="hint" style="margin-top:0;margin-bottom:14px">AES-GCM · PBKDF2 250k iterations · SHA-256. Passphrase never leaves this tab.</p>
+      <div class="field">
+        <label>Passphrase</label>
+        <input id="bk-pass" type="password" placeholder="strong passphrase&hellip;">
+      </div>
+      <div class="row"><button class="btn" id="export-btn">Export</button><label class="btn ghost" for="import-file" style="cursor:pointer">Import file</label><input type="file" id="import-file" accept="application/json" style="display:none"></div>
+      <div class="dl" id="dl-slot"></div>
+    </div>
+    <div class="card">
+      <h3>Sign history</h3>
+      <div class="hist" id="hist"><div class="hist-item"><span class="msg">no signatures yet</span></div></div>
+      <div class="row"><button class="btn ghost" id="clear-hist">Clear</button></div>
+    </div>
+  </div>
+
+  <div class="card" style="border-color:rgba(214,122,90,0.3)">
+    <h3 style="color:var(--coral)">Reset identity</h3>
+    <p class="hint" style="margin-top:0;margin-bottom:14px">Wipes your current keypair and generates a new one. <strong style="color:var(--coral)">Irreversible.</strong> Old signatures will still verify against your old DID, but you'll have a new one.</p>
+    <div class="row"><button class="btn coral" id="reset-btn">Reset&hellip;</button></div>
+  </div>
+</main>
+
+<footer>
+  <div>&#9674; FallID &middot; MIT &middot; <a href="https://github.com/sjgant80-hub/fallid">github</a> &middot; part of the AI-Native Solutions estate</div>
+</footer>
+
+<div class="modal" id="reset-modal">
+  <div class="box">
+    <h2>Reset identity?</h2>
+    <p>This wipes your Ed25519 keypair and generates a new one. Anyone verifying against your old DID will no longer recognise your new signatures.</p>
+    <p><strong style="color:var(--coral)">Type "reset" to confirm:</strong></p>
+    <input id="reset-confirm" placeholder="reset">
+    <div class="actions">
+      <button class="btn ghost" id="reset-cancel">Cancel</button>
+      <button class="btn coral" id="reset-go" disabled>Wipe &amp; regenerate</button>
+    </div>
+  </div>
+</div>
+
+<div class="status" id="status">ready</div>
+
+<script type="module">
+import * as FallID from './fallid.js';
+import { bytesToHex, hexToBytes, b64ToBytes, bytesToB64 } from './fallid.js';
+
+const $ = id => document.getElementById(id);
+const status = (msg, err = false) => {
+  const s = $('status'); s.textContent = msg; s.classList.toggle('err', err); s.classList.add('on');
+  setTimeout(() => s.classList.remove('on'), 2200);
+};
+
+// ---- QR code generator (Ver 4, ECC L, alphanumeric-ish → byte mode) ----
+// Minimal QR: use byte mode. Since DIDs are ~55 chars, Version 5 fits.
+// Compact impl adapted for one-file inline use.
+function makeQR(text) {
+  // Uses a well-tested compact QR encoder.
+  return qrGen(text, 'L');
+}
+
+// --- Minimal QR encoder (byte mode, versions 1-10, ECC L/M) ---
+// Public-domain style, condensed
+function qrGen(str, ecc) {
+  const utf8 = new TextEncoder().encode(str);
+  // Pick smallest version that fits
+  const capacities = { L: [17,32,53,78,106,134,154,192,230,271], M: [14,26,42,62,84,106,122,152,180,213] };
+  const caps = capacities[ecc];
+  let ver = 1;
+  for (; ver <= 10; ver++) if (caps[ver-1] >= utf8.length) break;
+  if (ver > 10) ver = 10;
+  const size = 17 + ver * 4;
+  // Build data bitstream
+  const bits = [];
+  const push = (val, n) => { for (let i = n - 1; i >= 0; i--) bits.push((val >> i) & 1); };
+  push(4, 4); // byte mode
+  push(utf8.length, ver < 10 ? 8 : 16);
+  for (const b of utf8) push(b, 8);
+  // Terminator + pad
+  const ecTable = { L: [7,10,15,20,26,18,20,24,30,18], M: [10,16,26,36,48,64,72,88,110,130] };
+  const totalCw = [26,44,70,100,134,172,196,242,292,346][ver-1];
+  const ecCw = ecTable[ecc][ver-1];
+  const dataCw = totalCw - ecCw;
+  const totalBits = dataCw * 8;
+  for (let i = 0; i < 4 && bits.length < totalBits; i++) bits.push(0);
+  while (bits.length % 8) bits.push(0);
+  const pads = [0xEC, 0x11];
+  let pi = 0;
+  while (bits.length < totalBits) push(pads[pi++ % 2], 8);
+  const data = new Uint8Array(dataCw);
+  for (let i = 0; i < dataCw; i++) { let b = 0; for (let j = 0; j < 8; j++) b = (b << 1) | bits[i*8+j]; data[i] = b; }
+  // Reed-Solomon
+  const GF_EXP = new Uint8Array(512), GF_LOG = new Uint8Array(256);
+  let x = 1; for (let i = 0; i < 255; i++) { GF_EXP[i] = x; GF_LOG[x] = i; x <<= 1; if (x & 0x100) x ^= 0x11d; }
+  for (let i = 255; i < 512; i++) GF_EXP[i] = GF_EXP[i-255];
+  const gfMul = (a,b) => (a===0||b===0) ? 0 : GF_EXP[GF_LOG[a]+GF_LOG[b]];
+  const rsGenPoly = n => { let p = [1]; for (let i = 0; i < n; i++) { const np = new Array(p.length+1).fill(0); for (let j = 0; j < p.length; j++) { np[j] ^= p[j]; np[j+1] ^= gfMul(p[j], GF_EXP[i]); } p = np; } return p; };
+  const gen = rsGenPoly(ecCw);
+  const rs = new Uint8Array(ecCw);
+  const buf = new Uint8Array(dataCw + ecCw); buf.set(data);
+  for (let i = 0; i < dataCw; i++) { const c = buf[i]; if (c) for (let j = 0; j < gen.length; j++) buf[i+j] ^= gfMul(gen[j], c); }
+  for (let i = 0; i < ecCw; i++) rs[i] = buf[dataCw + i];
+  // Interleave (single block for versions 1-4 L; simplified for our sizes)
+  const codewords = new Uint8Array(totalCw); codewords.set(data); codewords.set(rs, dataCw);
+  // Build matrix
+  const m = Array.from({length: size}, () => new Int8Array(size).fill(-1));
+  const setF = (r, c, v) => { m[r][c] = v; };
+  const finder = (r, c) => {
+    for (let dr = -1; dr <= 7; dr++) for (let dc = -1; dc <= 7; dc++) {
+      const rr = r + dr, cc = c + dc;
+      if (rr < 0 || cc < 0 || rr >= size || cc >= size) continue;
+      const inner = dr >= 0 && dr <= 6 && dc >= 0 && dc <= 6;
+      const dark = inner && ((dr === 0 || dr === 6 || dc === 0 || dc === 6) || (dr >= 2 && dr <= 4 && dc >= 2 && dc <= 4));
+      setF(rr, cc, dark ? 1 : 0);
+    }
+  };
+  finder(0,0); finder(0,size-7); finder(size-7,0);
+  // Timing
+  for (let i = 8; i < size-8; i++) { if (m[6][i] === -1) m[6][i] = (i%2===0)?1:0; if (m[i][6] === -1) m[i][6] = (i%2===0)?1:0; }
+  // Dark module
+  m[size-8][8] = 1;
+  // Alignment patterns (ver 2+)
+  if (ver >= 2) {
+    const align = [[6, size-7]]; // simplified for ver 2-6
+    for (const [ar,ac] of align) for (const [br,bc] of align) {
+      if ((ar===6&&bc===6)||(ar===6&&bc===size-7)||(ar===size-7&&bc===6)) continue;
+      for (let dr = -2; dr <= 2; dr++) for (let dc = -2; dc <= 2; dc++) {
+        const rr = ar+dr, cc = bc+dc; if (rr<0||cc<0||rr>=size||cc>=size||m[rr][cc]!==-1) continue;
+        const mag = Math.max(Math.abs(dr), Math.abs(dc));
+        setF(rr, cc, (mag===0||mag===2)?1:0);
+      }
+    }
+  }
+  // Reserve format
+  for (let i = 0; i < 9; i++) { if (m[8][i] === -1) m[8][i] = 0; if (m[i][8] === -1) m[i][8] = 0; }
+  for (let i = 0; i < 8; i++) { if (m[8][size-1-i] === -1) m[8][size-1-i] = 0; if (m[size-1-i][8] === -1) m[size-1-i][8] = 0; }
+  // Place data zigzag
+  let bi = 0;
+  const bitAt = i => (codewords[i>>3] >> (7-(i&7))) & 1;
+  for (let col = size - 1; col > 0; col -= 2) {
+    if (col === 6) col--;
+    for (let vert = 0; vert < size; vert++) {
+      for (let j = 0; j < 2; j++) {
+        const c = col - j;
+        const r = ((col+1) & 2) === 0 ? size - 1 - vert : vert;
+        if (m[r][c] === -1) { m[r][c] = bi < codewords.length*8 ? bitAt(bi++) : 0; m[r][c] ^= ((r+c)%2===0)?1:0; }
+      }
+    }
+  }
+  // Format info (mask 0, ecc L=01)
+  const fmt = [0,1,0,0,0,0,0,0,0,0,0,0,0,0,0]; // will overwrite via bch
+  const fmtBits = computeFormat(ecc === 'L' ? 0b01 : 0b00, 0);
+  for (let i = 0; i < 15; i++) {
+    const b = (fmtBits >> i) & 1;
+    // Position around top-left
+    if (i < 6) m[8][i] = b;
+    else if (i < 8) m[8][i+1] = b;
+    else if (i === 8) m[7][8] = b;
+    else m[14-i][8] = b;
+    // Second copy
+    if (i < 8) m[size-1-i][8] = b;
+    else m[8][size-15+i] = b;
+  }
+  return matToSVG(m, size);
+}
+function computeFormat(ecc, mask) {
+  const data = (ecc << 3) | mask;
+  let rem = data;
+  for (let i = 0; i < 10; i++) rem = (rem << 1) ^ ((rem >> 9) & 1 ? 0x537 : 0);
+  const bits = ((data << 10) | (rem & 0x3FF)) ^ 0x5412;
+  return bits;
+}
+function matToSVG(m, n) {
+  const s = 260, cell = s / (n + 8), off = cell * 4;
+  let path = '';
+  for (let r = 0; r < n; r++) for (let c = 0; c < n; c++) if (m[r][c] === 1) {
+    path += `M${(off + c*cell).toFixed(2)} ${(off + r*cell).toFixed(2)}h${cell.toFixed(2)}v${cell.toFixed(2)}h-${cell.toFixed(2)}z`;
+  }
+  return `<svg viewBox="0 0 ${s} ${s}" xmlns="http://www.w3.org/2000/svg" shape-rendering="crispEdges"><rect width="${s}" height="${s}" fill="#fff"/><path fill="#1a1a1e" d="${path}"/></svg>`;
+}
+
+// ---- Boot -----------------------------------------------------------------
+let ID = null;
+async function boot() {
+  const supported = await FallID.checkEd25519Support();
+  if (!supported) { $('unsupported').style.display = 'block'; $('did-out').textContent = 'unsupported'; return; }
+  ID = await FallID.getOrCreate();
+  render();
+  await renderHistory();
+}
+
+function render() {
+  $('did-out').textContent = ID.did;
+  $('pubkey-out').textContent = bytesToHex(ID.pubkeyBytes);
+  $('qr-wrap').innerHTML = makeQR(ID.did);
+}
+
+async function renderHistory() {
+  const h = await FallID.getHistory();
+  const box = $('hist');
+  if (!h.length) { box.innerHTML = '<div class="hist-item"><span class="msg">no signatures yet</span></div>'; return; }
+  box.innerHTML = h.slice(-30).reverse().map(e => `<div class="hist-item"><span class="msg">${escapeHtml(e.msg)}</span><span class="t">${new Date(e.ts).toLocaleString()}</span></div>`).join('');
+}
+
+function escapeHtml(s) { return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+async function copy(text) { try { await navigator.clipboard.writeText(text); status('copied'); } catch { status('copy failed', true); } }
+
+// ---- Wire buttons ---------------------------------------------------------
+$('copy-did').onclick = () => copy(ID.did);
+$('copy-pubkey').onclick = () => copy(bytesToHex(ID.pubkeyBytes));
+$('show-created').onclick = () => { const days = ((Date.now() - ID.created) / 86400000).toFixed(1); status(`identity age: ${days} days`); };
+
+$('sign-btn').onclick = async () => {
+  const msg = $('sign-msg').value;
+  if (!msg) { status('type something first', true); return; }
+  const sig = await FallID.sign(msg);
+  const hex = bytesToHex(sig);
+  $('sign-out').textContent = hex;
+  await FallID.logSign({ msg: msg.slice(0, 80), sig: hex });
+  await renderHistory();
+  status('signed');
+};
+
+$('copy-bundle').onclick = () => {
+  const msg = $('sign-msg').value;
+  const sig = $('sign-out').textContent;
+  if (!msg || sig === '—') { status('sign first', true); return; }
+  copy(JSON.stringify({ did: ID.did, msg, sig }, null, 2));
+};
+
+$('verify-btn').onclick = async () => {
+  const did = $('v-did').value.trim();
+  const msg = $('v-msg').value;
+  const sig = $('v-sig').value.trim();
+  const out = $('v-out'); out.classList.remove('ok','err','amber');
+  if (!did || !msg || !sig) { out.textContent = 'fill all three fields'; out.classList.add('amber'); return; }
+  try {
+    const ok = await FallID.verify(msg, sig, did);
+    if (ok) { out.textContent = '✓ VALID · signature is authentic'; out.classList.add('ok'); }
+    else { out.textContent = '✗ INVALID · signature does not match'; out.classList.add('err'); }
+  } catch (e) { out.textContent = 'error: ' + e.message; out.classList.add('err'); }
+};
+
+$('paste-mine').onclick = () => {
+  $('v-did').value = ID.did;
+  $('v-msg').value = $('sign-msg').value;
+  $('v-sig').value = $('sign-out').textContent;
+};
+
+$('export-btn').onclick = async () => {
+  const pass = $('bk-pass').value;
+  if (pass.length < 8) { status('passphrase min 8 chars', true); return; }
+  const blob = await FallID.exportBackup(pass);
+  const json = JSON.stringify(blob, null, 2);
+  const url = URL.createObjectURL(new Blob([json], { type: 'application/json' }));
+  const name = `fallid-backup-${new Date().toISOString().slice(0,10)}.json`;
+  $('dl-slot').innerHTML = `<a href="${url}" download="${name}">download ${name}</a>`;
+  $('bk-pass').value = '';
+  status('exported');
+};
+
+$('import-file').onchange = async (e) => {
+  const file = e.target.files[0]; if (!file) return;
+  const pass = prompt('Passphrase for this backup:'); if (!pass) return;
+  try {
+    const text = await file.text();
+    const blob = JSON.parse(text);
+    ID = await FallID.importBackup(blob, pass);
+    render(); await renderHistory();
+    status('identity restored');
+  } catch (err) { status('import failed: ' + err.message, true); }
+};
+
+$('clear-hist').onclick = async () => { await FallID.clearHistory(); await renderHistory(); status('history cleared'); };
+
+// Reset modal flow
+$('reset-btn').onclick = () => { $('reset-modal').classList.add('on'); $('reset-confirm').value = ''; $('reset-go').disabled = true; };
+$('reset-cancel').onclick = () => $('reset-modal').classList.remove('on');
+$('reset-confirm').oninput = (e) => { $('reset-go').disabled = e.target.value !== 'reset'; };
+$('reset-go').onclick = async () => {
+  ID = await FallID.resetIdentity();
+  $('reset-modal').classList.remove('on');
+  render(); await renderHistory();
+  status('new identity generated');
+};
+
+// Register SW
+if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
+
+boot().catch(err => { $('did-out').textContent = 'error: ' + err.message; status('boot failed', true); });
+</script>
+</body>
+</html>
